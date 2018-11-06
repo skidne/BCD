@@ -1,26 +1,145 @@
-# Laboratory No.3
+# Laboratory No.5
 
 
 ### Objectives
 
-#### Database Creation and Maintenance Tools
+#### T-SQL: Procedural Instructions
 
 ### Tasks
 
-1. Create a database in `MyDocuments/Data` with 16MB growth of the primary file and 128MB limit, 64MB growth and 1024MB limit of the log file. For other files, create a new `Filegroup`, and limit the growth from 64MB to 1024MB.
+1. Add IF/ELSE statements to the code:
 
-![ex1](https://user-images.githubusercontent.com/22482507/45377107-47777100-b602-11e8-9a98-a8d735a2471a.JPG)
+__SQL Querry:__
 
-2. Create a database with the log file physically placed in `MyDocuments/Log` and with different names physically and logically. It also should be compatible with the newest MS SQL Server 2017 and restricted to a single user at a time.
+```sql
+DECLARE @N1 INT, @N2 INT, @N3 INT;
+DECLARE @MAI_MARE INT;
 
-![ex2](https://user-images.githubusercontent.com/22482507/45377108-47777100-b602-11e8-921b-2dc2a1b92d6e.JPG)
+SET @N1 = 60 * RAND();
+SET @N2 = 60 * RAND();
+SET @N3 = 60 * RAND();
 
-![ex2](https://user-images.githubusercontent.com/22482507/45377109-48100780-b602-11e8-8c57-598d1b25b1d2.JPG)
+IF (@N1 < @N2 AND @N2 > @N3)
+  SET @MAI_MARE = @N2
+ELSE IF (@N1 > @N2 AND @N1 > @N3)
+  SET @MAI_MARE = @N1
+ELSE
+  SET @MAI_MARE = @N3
 
-3. Create a maintenance plan for the 1st task, with a shrink attribute if the db overweights 2000MB, the schedule for the plan should be every Friday on 12AM.
+PRINT @N1;
+PRINT @N2;
+PRINT @N3;
+PRINT 'Mai mare = ' + CAST(@MAI_MARE AS VARCHAR(2)); 
+```
 
-![ex3](https://user-images.githubusercontent.com/22482507/45377110-48100780-b602-11e8-9520-3f9404637625.JPG)
+  __Output:__
+  
+25
 
-4. Create a maintenance plan for the 2nd task, with `rebuild index` and `Clean up History` checks, every first sunday every month.
+11
 
-![ex4](https://user-images.githubusercontent.com/22482507/45377112-48100780-b602-11e8-830b-db1f34d808f4.JPG)
+18
+
+Mai mare = 25
+
+
+2. Display the first 10 rows of the students' marks on the first evaluation on Databases course, except for marks as 6 and 8:
+
+
+
+  __SQL Querry:__
+
+```sql
+DECLARE @DISC VARCHAR(20); DECLARE @EVAL VARCHAR(20);
+SET @DISC = 'Baze de date'
+SET @EVAL = 'Testul 1'
+ 
+SELECT TOP 10 Nume_Student, Prenume_Student, Nota
+FROM studenti_reusita R
+INNER JOIN discipline D ON R.Id_Disciplina = D.Id_Disciplina
+INNER JOIN studenti S ON R.Id_Student = S.Id_Student
+WHERE Tip_Evaluare = @EVAL AND Disciplina = @DISC AND Nota = iif(Nota <> 6 AND Nota <> 8, Nota, NULL)
+ORDER BY Nota DESC
+```
+
+ __Output:__
+ 
+| Nume_Student|Prenume_Student|Nota| 
+|-------------|-------------|----| 
+| Ghiran |	Andrei	| 10
+| Dascal	| Florina	| 10
+|Orian	| Sergiu	| 10
+|Paros	| Constantin |	10
+|Ghiurea |	Stefan |	9
+|Hanea |	Marius |	9
+|Pop	 | Alexandru	 |9
+|Dan	 | David	 | 9
+|Danci	| Larisa |	9
+|Diaconu	| Samuel	  | 9
+
+
+3. Rewrite the 1st task using CASE:
+
+  __SQL Querry:__
+
+  ```sql
+DECLARE @N1 INT, @N2 INT, @N3 INT;
+DECLARE @MAI_MARE INT;
+
+SET @N1 = 60 * RAND();
+SET @N2 = 60 * RAND();
+SET @N3 = 60 * RAND();
+
+SET @MAI_MARE = 
+CASE
+	WHEN (@N1 < @N2 AND @N2 > @N3)
+		THEN @N2
+	WHEN (@N1 > @N2 AND @N1 > @N3)
+		THEN @N1
+	ELSE @N3
+END
+
+PRINT @N1;
+PRINT @N2;
+PRINT @N3;
+PRINT 'Mai mare = ' + CAST(@MAI_MARE AS VARCHAR(2)); 
+  ```
+
+4. Rewrite the 1st task with try/catch blocks and RAISERROR:
+
+
+  __SQL Querry:__
+
+```sql
+DECLARE @N1 FLOAT, @N2 FLOAT, @N3 FLOAT;
+DECLARE @MAI_MARE FLOAT;
+
+BEGIN TRY
+
+SET @N1 = 60 / RAND() / 0;
+SET @N2 = 60 / RAND();
+SET @N3 = 60 / RAND();
+
+
+IF (@N1 > @N2 AND @N1 > @N3)
+	SET @MAI_MARE = @N1
+ELSE IF (@N2 > @N1 AND @N2 > @N3)
+	SET @MAI_MARE = @N2
+ELSE IF (@N3 > @N1 AND @N3 > @N2)
+	SET @MAI_MARE = @N3
+ELSE RAISERROR('SOMETHING IS WRONG', 11, 1)
+
+PRINT @N1;
+PRINT @N2;
+PRINT @N3;
+PRINT 'Mai mare = ' + CAST(@MAI_MARE AS VARCHAR(20));
+
+END TRY
+BEGIN CATCH
+	PRINT 'ERROR: ' + CAST(ERROR_MESSAGE() AS VARCHAR(20))
+END CATCH
+```
+
+__Output:__
+
+ERROR: Divide by zero error
