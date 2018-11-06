@@ -1,26 +1,142 @@
-# Laboratory No.3
+# Laboratory No.4
 
 
 ### Objectives
 
-#### Database Creation and Maintenance Tools
+#### Query editor for T-SQL and PL/SQL:
 
 ### Tasks
 
-1. Create a database in `MyDocuments/Data` with 16MB growth of the primary file and 128MB limit, 64MB growth and 1024MB limit of the log file. For other files, create a new `Filegroup`, and limit the growth from 64MB to 1024MB.
+1. (4) Display which Courses (_Discipline_) have names longer than 20 characters:
 
-![ex1](https://user-images.githubusercontent.com/22482507/45377107-47777100-b602-11e8-9a98-a8d735a2471a.JPG)
+__SQL Querry:__
 
-2. Create a database with the log file physically placed in `MyDocuments/Log` and with different names physically and logically. It also should be compatible with the newest MS SQL Server 2017 and restricted to a single user at a time.
+```sql
+SELECT Disciplina
+FROM discipline
+WHERE LEN(Disciplina) > 20
+```
 
-![ex2](https://user-images.githubusercontent.com/22482507/45377108-47777100-b602-11e8-921b-2dc2a1b92d6e.JPG)
+  __Output:__
+  
+| NR | Disciplina                                 | 
+|----|--------------------------------------------|
+| 1  | Programarea calculatoarelor                | 
+| 2  | Asamblare si depanare PC                   | 
+| 3  | Cercetari operationale                     | 
+| 4  | Structuri de date si algoritmi             | 
+| 5  | Limbaje evaluate de programare (Java,.NET) | 
+| 6  | Programarea aplicatiilor Windows           | 
+| 7  | Tehnologii de procesare a informatiei      | 
+| 8  | Programarea declarativa                    | 
+| 9  | Proiectarea sistemelor informatice         | 
+| 10 | Practica de productie                      | 
+| 11 | Integrare informationala europeana         | 
 
-![ex2](https://user-images.githubusercontent.com/22482507/45377109-48100780-b602-11e8-8c57-598d1b25b1d2.JPG)
+2. (21) How many marks (_Note_) does each student have? Display their names and surnames:
 
-3. Create a maintenance plan for the 1st task, with a shrink attribute if the db overweights 2000MB, the schedule for the plan should be every Friday on 12AM.
+  __SQL Querry:__
 
-![ex3](https://user-images.githubusercontent.com/22482507/45377110-48100780-b602-11e8-9520-3f9404637625.JPG)
+```sql
+SELECT Nume_Student, Prenume_Student, COUNT(Nota) AS Note
+FROM studenti S LEFT JOIN studenti_reusita R ON S.Id_Student = R.Id_Student
+GROUP BY Nume_Student, Prenume_Student
+ORDER BY Nume_Student
+```
 
-4. Create a maintenance plan for the 2nd task, with `rebuild index` and `Clean up History` checks, every first sunday every month.
+ __Output:__
+ 
+| Nume_Student|Prenume_Student|Note| 
+|-------------|-------------|----| 
+| Brasovianu  | Teodora     | 40 | 
+| Corovet     | Eduard      | 52 | 
+| Cosovanu    | Geanina     | 40 | 
+| Coste       | Claudia     | 40 | 
+| Covas       | Roman       | 0  | 
+| Damian      | Adina       | 40 | 
+| Damian      | Roxana      | 40 | 
+| Dan         | David       | 40 | 
+| Danci       | Larisa      | 40 | 
+| Dascal      | Florina     | 52 | 
+| Demian      | Bogdan      | 40 | 
+| Diaconu     | Samuel      | 38 | 
+| Dobrea      | Daniela     | 40 | 
+| Dobrita     | Maria       | 40 | 
+| Dobrovat    | Mihai       | 40 | 
+| Dordai      | Ovidiu      | 40 | 
+| Ene         | Mihai       | 40 | 
+| Farcas      | Alina       | 40 | 
+| Florea      | Ioan        | 52 | 
+| Forgaci     | Mihai       | 40 | 
+| Fratila     | Ovidiu      | 40 | 
+| Gadalean    | Gabriela    | 40 | 
+| Galambosi   | Norbert     | 50 | 
+| Gheorghescu | Gabriel     | 40 | 
+| Ghimpu      | Eduard      | 40 | 
+| Ghiran      | Andrei      | 40 | 
+| Ghiurea     | Stefan      | 40 | 
+| Giurca      | Sebastian   | 40 | 
+| Goia        | Ariana      | 40 | 
+| Hanea       | Marius      | 40 | 
+| Holhos      | Bogdan      | 52 | 
+| Irimia      | Cristiana   | 0  | 
+| Irimus      | Andrei      | 0  | 
+| Jinga       | Cristian    | 52 | 
+| Judea       | Stefana     | 0  | 
+| Jurj        | Flaviu      | 0  | 
+| Letea       | Roland      | 0  | 
+| Lincar      | Alexandra   | 52 | 
+| Luca        | Alex        | 52 | 
+| Luca        | Laura       | 0  | 
+| Lucaciu     | Alexandru   | 0  | 
+| Lucaciu     | Raul        | 0  | 
+| Lucasu      | Victor      | 0  | 
+| Marcu       | Daniel      | 0  | 
+| Marin       | Stefan      | 0  | 
+| Martis      | Dan         | 0  | 
+| Matasari    | Alexandru   | 0  | 
+| Mates       | Catalin     | 52 | 
+| Matko       | Mihai       | 0  | 
+| Maxim       | Tudor       | 0  | 
+| Mazareanu   | Sergiu      | 0  | 
+| Medrea      | Diana       | 0  | 
+| Mesesan     | Maria       | 0  | 
+| Muresan     | Sergiu      | 52 | 
+| Nicola      | Claudiu     | 52 | 
+| Nicolae     | Radu        | 52 | 
+| Nicolescu   | Aurel       | 52 | 
+| Oncioiu     | Costin-Ilie | 52 | 
+| Oniga       | Bogdan      | 52 | 
+| Orian       | Sergiu      | 52 | 
+| Paros       | Constantin  | 52 | 
+| Petok       | Lorand      | 52 | 
+| Pintea      | Andrei      | 52 | 
+| Pitigoi     | Valentina   | 52 | 
+| Poienar     | Robert      | 52 | 
+| Pop         | Alexandru   | 52 | 
+| Pop         | Irina       | 52 | 
+| Popa        | Mihaela     | 52 | 
+| Popov       | Andrei      | 52 | 
+| Suciu       | Ionut       | 52 | 
+| Timu        | Andrei      | 14 | 
+| Vacareanu   | Stefan      | 0  | 
+| Vaman       | Mihai       | 0  | 
+| Varga       | Izabella    | 0  | 
+| Viman       | Viorel      | 0  | 
 
-![ex4](https://user-images.githubusercontent.com/22482507/45377112-48100780-b602-11e8-830b-db1f34d808f4.JPG)
+3. (35) Find the names of the Courses (_Discipline_) and their average marks. Display the courses with an average mark bigger than 7.0:
+
+  __SQL Querry:__
+
+  ```sql
+  SELECT Disciplina, AVG(Nota) AS Media
+  FROM discipline D INNER JOIN studenti_reusita R ON D.Id_Disciplina = R.Id_Disciplina
+  GROUP BY Disciplina HAVING AVG(Nota) > 7.0
+  ORDER BY Disciplina
+  ```
+
+  __Output:__
+  
+| Disciplina             | Media | 
+|------------------------|-------|
+|Programarea declarativa | 8.0   | 
