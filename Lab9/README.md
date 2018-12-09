@@ -1,143 +1,460 @@
-# Laboratory Work No.8
+# Laboratory Work No.9
 
 
 ### Objectives
 
-#### Views and table-expressions
+#### Procedures and Functions
 
 ### Tasks
 
-1. Create 2 views based on previously created querries (in lab4). The first view should be created in the querry editor, the second in View Designer mode:
+1. Create 2 procedures based on previously created querries (in lab4):
 
   __SQL Querry:__
   
   ```sql
-  CREATE VIEW view1 AS
-	SELECT *
-	FROM grupe
-  GO
+DROP PROCEDURE IF EXISTS ex1_1;
+GO
+
+CREATE PROCEDURE ex1_1
+	@param INT
+AS
+	SELECT Disciplina
+	FROM DISC
+	WHERE LEN(Disciplina) > @param
+GO
+
+EXECUTE ex1_1 @param = 20;
+
+DROP PROCEDURE IF EXISTS ex1_2;
+GO
+
+CREATE PROCEDURE ex1_2
+	@mark FLOAT
+AS
+	SELECT Disciplina, AVG(Nota) AS Media
+	FROM plan_studii.discipline d INNER JOIN studenti.studenti_reusita r
+	ON d.Id_Disciplina = r.Id_Disciplina
+	GROUP BY Disciplina HAVING AVG(Nota) > @mark
+	ORDER BY Disciplina
+GO
+
+EXECUTE ex1_2 @mark = 7.0
   ```
   
-  __Result:__
+  __Output:__
 
-  ![task1_1](https://user-images.githubusercontent.com/22482507/49365851-83494080-f6f0-11e8-86fc-65da8c787682.JPG)
-  ![task1_2](https://user-images.githubusercontent.com/22482507/49365849-83494080-f6f0-11e8-8839-e24debfe98f4.JPG)
+  - The outputs can be seen [here](../Lab4)
 
-
-2. Write an example of Insert, Update, Delete statements on the created view:
+2. Create a procedure that doesn't have an input parameter, but has an output parameter. The ouput parameter should return the number of students that didn't pass at least one exam:
 
     __SQL Querry:__
   
   ```sql
-  INSERT INTO view1
-  VALUES ('FAF161', 'TI', 'CIM', 133, 103)
-  GO
+DROP PROCEDURE IF EXISTS ex2;
+GO
 
-  UPDATE view1
-  SET Specialitate = 'Tehnologii Informationale' WHERE Specialitate = 'TI'
-  GO
+CREATE PROCEDURE ex2
+AS
+	RETURN
+	    (SELECT COUNT(*)
+		FROM studenti.studenti_reusita
+		WHERE Nota < 5 OR Nota = NULL)
+GO
 
-  DELETE FROM view1
-  WHERE Cod_Grupa = 'FAF161'
-  GO
+DECLARE @badStudents INT
+EXECUTE @badStudents = ex2
+SELECT @badStudents as 'Bad Students'
   ```
+  
+  __Output:__
 
-3. Write the necessary SQL instructions which would modify the views so they can't be modified or deleted if the _WHERE_ cause isn't satisfied:
+  |Bad Students|
+  |------------|
+  |    198     |
+
+
+3. Create a procedure that would insert a new student into the database:
 
   __SQL Querry:__
 
   ```sql
-  DROP VIEW IF EXISTS view1
+DROP PROCEDURE IF EXISTS insertInfo
+GO
 
-  CREATE VIEW view1 (Id_Grupa, Cod_Grupa, Specialitate, Nume_Facultate, Sef_grupa, Prof_Indrumator) WITH SCHEMABINDING AS
-    SELECT Id_Grupa, Cod_Grupa, Specialitate, Nume_Facultate, Sef_grupa, Prof_Indrumator
-    FROM dbo.grupe
-    WITH CHECK OPTION
-  GO
+CREATE PROCEDURE insertInfo
+	@id INT,
+	@name VARCHAR(50),
+	@surname VARCHAR(50),
+	@birthday DATE,
+	@address VARCHAR(500),
+	@GroupCode VARCHAR(6)
+AS
+	INSERT INTO studenti.studenti
+	VALUES (@id, @name, @surname, @birthday, @address)
+	INSERT INTO studenti.studenti_reusita
+	VALUES (@id, 106, 104, @GroupCode, 'lul', NULL, NULL)
+GO
 
-  SELECT * FROM view1
-
-  DROP VIEW IF EXISTS VIEWDESIGNER
-
-  CREATE VIEW VIEWDESIGNER (Desciplina) WITH SCHEMABINDING AS
-    SELECT Disciplina
-    FROM plan_studii.discipline
-    WHERE LEN(Disciplina) > 20
-    WITH CHECK OPTION
-  GO
-
-  SELECT * FROM VIEWDESIGNER
+EXECUTE insertInfo
+		@id = 233,
+		@name = 'Buratino2',
+		@surname = 'Ghenadievici',
+		@birthday = '02/02/1931',
+		@address = 'Siberia',
+		@GroupCode = 1
   ```
   
-4. Test the previous instructions:
+4. Create a procedure that would replace a professor in the _studenti_reusita_ table with another one:
 
   __SQL Querry:__
   
   ```sql
-  SELECT * FROM view1
-  ALTER TABLE grupe DROP COLUMN Cod_Grupa
+DROP PROCEDURE IF EXISTS ProfReassign
+GO
 
-  SELECT * FROM VIEWDESIGNER
-  ALTER TABLE plan_studii.discipline DROP COLUMN Disciplina
+CREATE PROCEDURE ProfReassign
+	@oldName VARCHAR(60),
+	@oldSurname VARCHAR(60),
+	@newName VARCHAR(60),
+	@newSurname VARCHAR(60),
+	@discipline VARCHAR(255)
+AS
+	DECLARE @old_id INT, @new_id INT, @disc_id INT
+	
+	SET @old_id = (SELECT Id_Profesor
+		FROM cadre_didactice.profesori
+		WHERE Nume_Profesor = @oldName
+		AND Prenume_Profesor = @oldSurname)
+	
+	SET @new_id = (SELECT Id_Profesor
+		FROM cadre_didactice.profesori
+		WHERE Nume_Profesor = @newName
+		AND Prenume_Profesor = @newSurname)
+	
+	SET @disc_id = (SELECT Id_Disciplina
+		FROM plan_studii.discipline
+		WHERE Disciplina = @discipline)
+	
+	IF (@new_id = NULL OR @old_id = NULL OR @disc_id = NULL)
+	BEGIN
+		RAISERROR('Data not found.', 15, 1)
+	END
+
+	UPDATE studenti.studenti_reusita
+	SET Id_Profesor = @new_id
+	WHERE Id_Profesor = @old_id AND Id_Disciplina = @disc_id
+GO
+
+EXECUTE ProfReassign
+		@oldName = 'Frent',
+		@oldSurname = 'Tudor',
+		@newName = 'Jugaru',
+		@newSurname = 'George',
+		@discipline = 'Cercetari operationale'
   ```
-  + __The object 'UQ__grupe__1AAD322C13F2842D' is dependent on column 'Cod_Grupa'.__
-  + __ALTER TABLE DROP COLUMN Cod_Grupa failed because one or more objects access this column.__
-  + __The object 'VIEWDESIGNER' is dependent on column 'Disciplina'.__
-  + __ALTER TABLE DROP COLUMN Disciplina failed because one or more objects access this column.__
   
-5. Write 2 querries from the 4th lab in __CTE__:
+  
+5. Create a procedure that would find the top 3 best students from a group (input parameter) and add 1p to their marks:
 
   ```sql
-  WITH CTE1 AS (SELECT * FROM grupe)
+DROP PROCEDURE IF EXISTS Top3Discipline
+GO
 
-  SELECT * FROM CTE1
+CREATE PROCEDURE Top3Discipline
+	@discipline VARCHAR(255)
+AS
+	DECLARE @ret TABLE
+		(Cod_Grupa VARCHAR(6),
+		Nume_Prenume_Student VARCHAR(255),
+		Disciplina VARCHAR(255),
+		NotaVeche TINYINT,
+		NotaNoua TINYINT,
+		Id INT)
 
-  WITH CTE2 AS
-    (SELECT Disciplina
-    FROM plan_studii.discipline
-    WHERE LEN(Disciplina) > 20)
+	INSERT INTO @ret
+	SELECT DISTINCT TOP 3 Cod_Grupa, Nume_Student + ' ' + Prenume_Student, Disciplina, Nota, IIF(Nota = 10, 10, Nota + 1), S.Id_Student
+	FROM studenti.studenti_reusita SR
+	JOIN studenti.studenti S ON S.Id_Student = SR.Id_Student
+	JOIN plan_studii.discipline D ON SR.Id_Disciplina = D.Id_Disciplina
+	JOIN grupe G ON SR.Id_Grupa = G.Id_Grupa
+	WHERE Disciplina = @discipline
+	ORDER BY Nota DESC
 
-  SELECT * FROM CTE2
+	SELECT Cod_Grupa, Nume_Prenume_Student, Disciplina, NotaVeche, NotaNoua FROM @ret 
+
+	UPDATE studenti.studenti_reusita
+	SET Nota = Nota + 1 WHERE Id_Student IN (SELECT Id FROM @ret) AND Nota < 10
+
+	RETURN SELECT Cod_Grupa, Nume_Prenume_Student, Disciplina, NotaVeche, NotaNoua
+	FROM @ret
+GO
+
+EXECUTE Top3Discipline @discipline = 'Cercetari operationale'
   ```
 
-6. Write a recursive table-expression to traverse in depth a graph (from any node to 0):
+  __Output:__
+  
+| Cod_Grupa | Nume_Prenume_Student | Disciplina              | NotaVeche | NotaNoua | 
+|-----------|----------------------|-------------------------|-----------|----------| 
+| CIB171    | Cosovanu Geanina     | Cercetari operationale  | 10        | 10       | 
+| CIB171    | Damian Adina         | Cercetari operationale  | 10        | 10       | 
+| CIB171    | Diaconu Samuel       | Cercetari operationale  | 10        | 10       | 
+ 
+ 
+6. Create functions based on the 4th lab:
 
   __SQL Querry:__
 
   ```sql
-  CREATE TABLE graph
-  (
-    id INT PRIMARY KEY,
-    anchor INT REFERENCES graph
-  )
+DROP FUNCTION IF EXISTS ft_longerDiscNames
+GO
 
-  INSERT INTO graph
-  VALUES	(1 ,0),
-      (2, 1),
-      (3, 2),
-      (4, 2),
-      (5, 0),
-      (0, null)
+CREATE FUNCTION ft_longerDiscNames(@nr INT)
+RETURNS TABLE
+AS
+	RETURN (SELECT Disciplina
+		FROM plan_studii.discipline
+		WHERE LEN(Disciplina) > @nr)
+GO
 
-  WITH graph_traversal (curr, prev, depth)  AS
-    (SELECT id, cast(null as int) as prev, 0
-    FROM graph
-    WHERE anchor IS NULL
-    UNION ALL
-    SELECT id, anchor as prev, depth + 1
-    FROM graph
-    INNER JOIN graph_traversal ON anchor = curr)
-  SELECT * FROM graph_traversal
+DROP FUNCTION IF EXISTS ft_HigherMark
+GO
+
+CREATE FUNCTION ft_HigherMark(@mark FLOAT)
+RETURNS TABLE
+AS
+	RETURN (SELECT Disciplina, AVG(Nota) AS Media
+		FROM plan_studii.discipline d INNER JOIN studenti.studenti_reusita r
+		ON d.Id_Disciplina = r.Id_Disciplina
+		GROUP BY Disciplina HAVING AVG(Nota) > @mark)
+GO
+
+SELECT * FROM ft_longerDiscNames(20)
+SELECT * FROM ft_HigherMark(7.0)
+
   ```
   
    __Output:__
 
-| curr | prev | depth | 
-|------|------|-------| 
-| 0    | NULL | 0     | 
-| 1    | 0    | 1     | 
-| 5    | 0    | 1     | 
-| 2    | 1    | 2     | 
-| 3    | 2    | 3     | 
-| 4    | 2    | 3     | 
+  - As in the 1st task.
+  
+7. Create a function that would compute the age of a student:
+
+  __SQL Querry:__
+
+  ```sql
+DROP FUNCTION IF EXISTS ft_age
+GO
+
+CREATE FUNCTION ft_age(@bd DATE)
+RETURNS INT
+BEGIN
+	RETURN DATEDIFF(YEAR, @bd, GETDATE())
+END
+GO
+
+SELECT Nume_Student, Prenume_Student, dbo.ft_age(Data_Nastere_Student) as Virsta
+FROM studenti.studenti
+  ```
+  
+  __Output:__
+  
+| Nume_Student | Prenume_Student | Virsta | 
+|--------------|-----------------|--------| 
+| Brasovianu   | Teodora         | 18     | 
+| Cosovanu     | Geanina         | 18     | 
+| Coste        | Claudia         | 19     | 
+| Damian       | Roxana          | 18     | 
+| Damian       | Adina           | 18     | 
+| Dan          | David           | 20     | 
+| Danci        | Larisa          | 19     | 
+| Diaconu      | Samuel          | 18     | 
+| Demian       | Bogdan          | 18     | 
+| Dobrea       | Daniela         | 19     | 
+| Dobrita      | Maria           | 18     | 
+| Dobrovat     | Mihai           | 18     | 
+| Dordai       | Ovidiu          | 21     | 
+| Ene          | Mihai           | 18     | 
+| Farcas       | Alina           | 18     | 
+| Forgaci      | Mihai           | 21     | 
+| Fratila      | Ovidiu          | 18     | 
+| Gadalean     | Gabriela        | 17     | 
+| Gheorghescu  | Gabriel         | 17     | 
+| Ghimpu       | Eduard          | 18     | 
+| Ghiran       | Andrei          | 19     | 
+| Ghiurea      | Stefan          | 18     | 
+| Giurca       | Sebastian       | 18     | 
+| Goia         | Ariana          | 18     | 
+| Hanea        | Marius          | 20     | 
+| Holhos       | Bogdan          | 18     | 
+| Corovet      | Eduard          | 18     | 
+| Luca         | Alex            | 18     | 
+| Mates        | Catalin         | 18     | 
+| Dascal       | Florina         | 19     | 
+| Florea       | Ioan            | 18     | 
+| Galambosi    | Norbert         | 18     | 
+| Jinga        | Cristian        | 18     | 
+| Lincar       | Alexandra       | 18     | 
+| Muresan      | Sergiu          | 18     | 
+| Nicola       | Claudiu         | 18     | 
+| Nicolae      | Radu            | 18     | 
+| Nicolescu    | Aurel           | 19     | 
+| Oncioiu      | Costin-Ilie     | 19     | 
+| Oniga        | Bogdan          | 18     | 
+| Orian        | Sergiu          | 18     | 
+| Paros        | Constantin      | 18     | 
+| Petok        | Lorand          | 19     | 
+| Pintea       | Andrei          | 18     | 
+| Pitigoi      | Valentina       | 18     | 
+| Poienar      | Robert          | 18     | 
+| Popov        | Andrei          | 18     | 
+| Pop          | Alexandru       | 18     | 
+| Pop          | Irina           | 20     | 
+| Popa         | Mihaela         | 18     | 
+| Suciu        | Ionut           | 18     | 
+| Timu         | Andrei          | 17     | 
+| Vacareanu    | Stefan          | 18     | 
+| Vaman        | Mihai           | 18     | 
+| Varga        | Izabella        | 18     | 
+| Viman        | Viorel          | 18     | 
+| Irimia       | Cristiana       | 24     | 
+| Irimus       | Andrei          | 19     | 
+| Judea        | Stefana         | 18     | 
+| Jurj         | Flaviu          | 18     | 
+| Covas        | Roman           | 18     | 
+| Letea        | Roland          | 18     | 
+| Luca         | Laura           | 18     | 
+| Lucaciu      | Raul            | 18     | 
+| Lucaciu      | Alexandru       | 19     | 
+| Lucasu       | Victor          | 18     | 
+| Marcu        | Daniel          | 18     | 
+| Marin        | Stefan          | 18     | 
+| Martis       | Dan             | 20     | 
+| Matko        | Mihai           | 19     | 
+| Maxim        | Tudor           | 18     | 
+| Matasari     | Alexandru       | 18     | 
+| Mazareanu    | Sergiu          | 23     | 
+| Medrea       | Diana           | 18     | 
+| Mesesan      | Maria           | 18     | 
+| Buratino     | Ghenadievici    | 87     | 
+| Buratino2    | Ghenadievici    | 87     | 
+
+
+8. Create a function that would return a student's data regarding his marks:
+
+
+  __SQL Querry:__
+
+  ```sql
+DROP FUNCTION IF EXISTS ft_studentData
+GO
+
+CREATE FUNCTION ft_studentData(@name VARCHAR(50))
+RETURNS TABLE
+AS
+	RETURN (SELECT @name Nume_Prenume_Student, Disciplina, Nota, Data_Evaluare
+			FROM studenti.studenti S
+			JOIN studenti.studenti_reusita SR ON S.Id_Student = SR.Id_Student
+			JOIN plan_studii.discipline D ON SR.Id_Disciplina = D.Id_Disciplina
+			WHERE @name = Nume_Student + ' ' + Prenume_Student)
+GO
+
+SELECT * FROM ft_studentData('Dan David')
+  ```
+  
+ __Output:__
+ 
+| Nume_Prenume_Student | Disciplina                         | Nota | Data_Evaluare | 
+|----------------------|------------------------------------|------|---------------| 
+| Dan David            | Cercetari operationale             | 8    | 2018-01-25    | 
+| Dan David            | Cercetari operationale             | 8    | 2018-12-03    | 
+| Dan David            | Cercetari operationale             | 5    | 2017-10-06    | 
+| Dan David            | Cercetari operationale             | 9    | 2017-12-09    | 
+| Dan David            | Baze de date                       | 8    | 2018-01-15    | 
+| Dan David            | Baze de date                       | 8    | 2018-12-03    | 
+| Dan David            | Baze de date                       | 9    | 2017-10-10    | 
+| Dan David            | Baze de date                       | 9    | 2017-12-15    | 
+| Dan David            | Structuri de date si algoritmi     | 3    | 2018-01-09    | 
+| Dan David            | Structuri de date si algoritmi     | 3    | 2018-12-03    | 
+| Dan David            | Structuri de date si algoritmi     | 5    | 2017-10-12    | 
+| Dan David            | Structuri de date si algoritmi     | 5    | 2017-12-12    | 
+| Dan David            | Matematica discreta                | 3    | 2018-01-25    | 
+| Dan David            | Matematica discreta                | 3    | 2018-12-04    | 
+| Dan David            | Matematica discreta                | 6    | 2017-10-03    | 
+| Dan David            | Matematica discreta                | 9    | 2017-12-14    | 
+| Dan David            | Modelarea sistemelor               | 10   | 2018-01-13    | 
+| Dan David            | Modelarea sistemelor               | 10   | 2018-12-03    | 
+| Dan David            | Modelarea sistemelor               | 10   | 2017-10-06    | 
+| Dan David            | Modelarea sistemelor               | 10   | 2017-12-14    | 
+| Dan David            | Programarea aplicatiilor Windows   | 5    | 2018-01-16    | 
+| Dan David            | Programarea aplicatiilor Windows   | 5    | 2018-12-04    | 
+| Dan David            | Programarea aplicatiilor Windows   | 10   | 2017-10-09    | 
+| Dan David            | Programarea aplicatiilor Windows   | 7    | 2017-12-08    | 
+| Dan David            | Proiectarea sistemelor informatice | 7    | 2018-01-15    | 
+| Dan David            | Proiectarea sistemelor informatice | 7    | 2018-12-03    | 
+| Dan David            | Proiectarea sistemelor informatice | 9    | 2017-10-13    | 
+| Dan David            | Proiectarea sistemelor informatice | 7    | 2017-12-12    | 
+| Dan David            | Practica de licenta                | 6    | 2018-01-25    | 
+| Dan David            | Practica de licenta                | 6    | 2018-12-05    | 
+| Dan David            | Practica de licenta                | 7    | 2017-10-04    | 
+| Dan David            | Practica de licenta                | 9    | 2017-12-11    | 
+| Dan David            | Practica de productie              | 5    | 2018-01-25    | 
+| Dan David            | Practica de productie              | 5    | 2018-12-04    | 
+| Dan David            | Practica de productie              | 10   | 2017-10-02    | 
+| Dan David            | Practica de productie              | 6    | 2017-12-11    | 
+| Dan David            | Integrare informationala europeana | 10   | 2018-01-14    | 
+| Dan David            | Integrare informationala europeana | 10   | 2018-12-03    | 
+| Dan David            | Integrare informationala europeana | 9    | 2017-10-04    | 
+| Dan David            | Integrare informationala europeana | 7    | 2017-12-13    | 
+
+
+9. Create a function that would find the best or the worst student in a group, depending on the value of the input variable __is_good__ which can be either 'sarguincios' or 'slab'. The function should return a table:
+
+
+  
+  __SQL Querry:__
+
+  ```sql
+DROP FUNCTION IF EXISTS ft_good_or_bad
+GO
+
+CREATE FUNCTION ft_good_or_bad(@Cod_Grupa VARCHAR(6), @is_good VARCHAR(20))
+RETURNS @ret TABLE
+	(Grupa VARCHAR(6),
+	Nume_Prenume_Student VARCHAR(50),
+	Nota_Medie DECIMAL(4, 2),
+	is_good VARCHAR(20))
+AS
+BEGIN
+	DECLARE @hack INT
+	SELECT @hack = CASE @is_good WHEN 'sarguincios' THEN -1 WHEN 'slab' THEN 1 END
+	
+	INSERT INTO @ret
+	SELECT TOP 1 @Cod_Grupa, Nume_Student + ' ' + Prenume_Student, AVG(CAST(Nota AS DECIMAL(4, 2))), @is_good
+	FROM studenti.studenti S
+	JOIN studenti.studenti_reusita SR
+	ON S.Id_Student = SR.Id_Student
+	JOIN grupe G
+	ON SR.Id_Grupa = G.Id_Grupa
+	WHERE Cod_Grupa = @Cod_Grupa AND Nota IS NOT NULL
+	GROUP BY Nume_Student, Prenume_Student
+	ORDER BY AVG(CAST(Nota AS DECIMAL(4, 2))) * @hack
+	RETURN
+END
+GO
+
+SELECT * FROM ft_good_or_bad('INF171', 'sarguincios')
+SELECT * FROM ft_good_or_bad('INF171', 'slab')
+  ```
+
+ __Output:__
+ 
+| Grupa  | Nume_Prenume_Student | Nota_Medie | is_good     | 
+|--------|----------------------|------------|-------------| 
+| INF171 | Timu Andrei          | 8.64       | sarguincios | 
+
+
+| Grupa  | Nume_Prenume_Student | Nota_Medie | is_good | 
+|--------|----------------------|------------|---------| 
+| INF171 | Suciu Ionut          | 7.33       | slab    | 
 
